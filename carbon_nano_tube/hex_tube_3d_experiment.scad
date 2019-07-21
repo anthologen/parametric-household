@@ -1,9 +1,24 @@
-$fn = 64;
-    
-joint_thickness = 1;
-segment_thickness = 1;
+$fn = 8;
 
-module makeLayer(num_sides, slice_angle, segment_radius, cut_segment_length, segment_thickness, height, isOdd)
+VERTEX_THICKNESS = 1.5;
+SEGMENT_THICKNESS = 1;
+SEGMENT_LENGTH = 6;
+
+module dumbbell()
+{
+    render() { // cache this object for future calls
+        union() { // union early to "swallow" internal verticies
+            rotate([0,90,0])
+                cylinder(h=SEGMENT_LENGTH, r=SEGMENT_THICKNESS/2, center=true);
+            translate([SEGMENT_LENGTH/2,0,0])
+                sphere(r=VERTEX_THICKNESS/2);
+            translate([-SEGMENT_LENGTH/2,0,0])
+                sphere(r=VERTEX_THICKNESS/2);
+        }
+    }
+}
+
+module makeLayer(num_sides, slice_angle, segment_radius, height, isOdd)
 {
     translate([0, 0, height])
     {
@@ -13,28 +28,21 @@ module makeLayer(num_sides, slice_angle, segment_radius, cut_segment_length, seg
             {
                 rotate([0,0,slice_angle*i])
                     translate([0,segment_radius,0])
-                    {
-                        rotate([0,90,0])
-                            cylinder(h=cut_segment_length, r=segment_thickness/2, center=true);
-                        translate([cut_segment_length/2,0,0])
-                            sphere(r=vertex_length/2);
-                        translate([-cut_segment_length/2,0,0])
-                            sphere(r=vertex_length/2);
-                    }
+                    dumbbell();
             }
         }
     }
 }
 
-module makeSupport(slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, cut_segment_length, segment_thickness, z_rotation, upAngle)
+module makeSupport(slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, z_rotation, upAngle)
 {
     rotate([0,0,z_rotation])
         translate([0,vertex_radius-vertex_radius_reduction,hexagon_height/4])
         rotate([0,upAngle,0])
-        cylinder(h=cut_segment_length, r=segment_thickness/2, center=true);
+        cylinder(h=SEGMENT_LENGTH, r=SEGMENT_THICKNESS/2, center=true);
 }
 
-module makeSupportLayer(num_sides, slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, cut_segment_length, segment_thickness, height, isOdd)
+module makeSupportLayer(num_sides, slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, height, isOdd)
 {
     offset_angle = slice_angle / 2;
     translate([0, 0, height])
@@ -43,29 +51,31 @@ module makeSupportLayer(num_sides, slice_angle, vertex_radius, vertex_radius_red
         {
             if(i % 2 == isOdd)
             {
-                makeSupport(slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, cut_segment_length, segment_thickness, (slice_angle*i) + offset_angle, -30);
+                makeSupport(slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, (slice_angle*i) + offset_angle, -30);
             }
             else
             {
-                makeSupport(slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, cut_segment_length, segment_thickness, (slice_angle*i) + offset_angle, 30);
+                makeSupport(slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, (slice_angle*i) + offset_angle, 30);
             }
 
         }
     }
 }
 
-module prototype_tube(num_sides, face_length, vertex_length, layers)
+module prototype_tube(num_sides, layers)
 {
     slice_angle = 360 / num_sides;
     vertex_angle = (num_sides - 2) * 180 / num_sides;
     
+    face_length = SEGMENT_LENGTH * ((1 / (2 * sin(vertex_angle/2))) + 1);
+    
     segment_radius = face_length / (2 * tan(slice_angle/2));
     vertex_radius = face_length / (2 * sin(slice_angle/2));
+    echo("Tube has diameter ", vertex_radius * 2);
     
-    cut_segment_length = face_length / ((1 / (2 * sin(vertex_angle/2))) + 1);
-    vertex_radius_reduction = cut_segment_length / (4 * tan(vertex_angle/2));
+    vertex_radius_reduction = SEGMENT_LENGTH / (4 * tan(vertex_angle/2));
     
-    hexagon_height = sqrt(3) * cut_segment_length;
+    hexagon_height = sqrt(3) * SEGMENT_LENGTH;
     layer_height = hexagon_height / 2;
     
     // horizontal segments
@@ -73,13 +83,11 @@ module prototype_tube(num_sides, face_length, vertex_length, layers)
     {
         if(layer % 2 == 0)
         {
-            makeLayer(num_sides, slice_angle, segment_radius, cut_segment_length, segment_thickness,
-                layer * layer_height, 0);
+            makeLayer(num_sides, slice_angle, segment_radius, layer * layer_height, 0);
         }
         else
         {
-            makeLayer(num_sides, slice_angle, segment_radius, cut_segment_length, segment_thickness,
-                layer * layer_height, 1);
+            makeLayer(num_sides, slice_angle, segment_radius, layer * layer_height, 1);
         }
     }
 
@@ -88,24 +96,20 @@ module prototype_tube(num_sides, face_length, vertex_length, layers)
     {
         if(supportLayer % 2 == 0)
         {
-            makeSupportLayer(num_sides, slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, cut_segment_length, segment_thickness, supportLayer * layer_height, 0);
+            makeSupportLayer(num_sides, slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, supportLayer * layer_height, 0);
         }
         else
         {
-            makeSupportLayer(num_sides, slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, cut_segment_length, segment_thickness, supportLayer * layer_height, 1);
+            makeSupportLayer(num_sides, slice_angle, vertex_radius, vertex_radius_reduction, hexagon_height, supportLayer * layer_height, 1);
         }
         
     }
 }
 
+num_sides = 4;
+layers = 4;
 
-
-segment_length = 8;
-vertex_length = 1.5;
-num_sides = 24;
-layers = 16;
-
-prototype_tube(num_sides, segment_length, vertex_length, layers);
+prototype_tube(num_sides, layers);
 base_height = 2;
-translate([0,0,-base_height])
-cylinder(r1=35, r2=32, h=base_height);
+//translate([0,0,-base_height])
+//    cylinder(r1=35, r2=32, h=base_height);
