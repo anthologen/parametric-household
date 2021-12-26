@@ -2,11 +2,11 @@
 
 /* [Armchair Carbon Nanotube] */
 // Diameter of the carbon atoms (mm)
-Carbon_diameter = 4;
+Carbon_diameter = 3;
 // Diameter of the carbon bonds (mm)
 Bond_diameter = 3;
 // Length of the carbon bonds (mm)
-Bond_length = 8;
+Bond_length = 8 ;
 // Halved number of n-gon faces on the tube
 Num_sides = 10;
 // Number of half layers to vertically stack
@@ -14,15 +14,29 @@ Num_half_layers = 12;
 // $fn used to draw carbon spheres
 Carbon_smoothness = 16;
 // $fn used to draw bond cylinders
-Bond_smoothness = 16;
+Bond_smoothness = 8;
 
 /* [Pen Holder Base] */
 // Toggle the pen holder base on/off
 Draw_pen_holder_base = true;
 // Height of the pen holder base (mm)
-Base_height = 1.5;
+Base_height = 3;
 // $fn used to draw the pen holder base
 Base_smoothness = 64;
+
+/* [Pen Holder Top Ring] */
+// Toggle the pen holder top ring on/off
+Draw_pen_holder_top_ring = true;
+// Height of the top ring (mm)
+Top_ring_height = 3;
+// $fn used to draw the pen holder base
+Top_ring_smoothness = 64;
+
+/* [Base and Top Bevel] */
+// Angle of the top and bottom bevel (relative to Z)
+Bevel_angle = 30;
+// Height of top and bottom bevel
+Bevel_height = 3;
 
 // --- Intermediate Values ---
 // pre-calculate values to allow for caching
@@ -35,9 +49,12 @@ g_ngon_vertex_radius = g_face_length / (2 * sin(g_ngon_slice_angle/2));
 g_ngon_vertex_radius_reduction = Bond_length / (4 * tan(g_ngon_vertex_angle/2));
 g_hexagon_height = sqrt(3) * Bond_length;
 g_half_layer_height = g_hexagon_height / 2;
+g_cnt_height = g_half_layer_height * Num_half_layers;
+g_base_outer_radius = g_ngon_vertex_radius + (Bevel_height * tan(Bevel_angle));
+Z_EPSILON = 0.01; // small value for z-fighting
 
 echo("Tube has approx. diameter ", g_ngon_vertex_radius * 2);
-echo("Tube has approx. height ", g_half_layer_height * Num_half_layers);
+echo("Tube has approx. height ", g_cnt_height);
 
 // --- Geometry ---
 // render() is used often to cache objects for future calls
@@ -125,15 +142,48 @@ module ArmchairCNT()
 
 module PenHolderBase()
 {
-    base_top_radius = g_ngon_vertex_radius + Carbon_diameter / 2;
-    base_bevel_height = Carbon_diameter / 2;
-    base_bevel_angle = 60; // to stylistically match bond angles
-    base_bottom_radius = base_top_radius + (base_bevel_height / tan(base_bevel_angle));
-    translate([0,0,-base_bevel_height])
-        cylinder(r1=base_bottom_radius, r2=base_top_radius, h=base_bevel_height, $fn=Base_smoothness);
-    translate([0,0,-base_bevel_height-Base_height])
-        cylinder(r=base_bottom_radius, h=Base_height, $fn=Base_smoothness);
+    translate([0,0,-Bevel_height])
+        cylinder(r1=g_base_outer_radius, r2=g_ngon_vertex_radius, h=Bevel_height, $fn=Base_smoothness);
+    translate([0,0,-Bevel_height-Base_height])
+        cylinder(r=g_base_outer_radius, h=Base_height, $fn=Base_smoothness);
+    echo("Penholder base has radius ", g_base_outer_radius);
+    echo("Penholder base has total height ", Bevel_height + Base_height);
+}
+
+module PenHolderTopRingPositive()
+{
+    cylinder(h=Bevel_height, r1=g_ngon_vertex_radius, r2=g_base_outer_radius, $fn=Top_ring_smoothness);
+        translate([0, 0, Bevel_height])
+    cylinder(h=Top_ring_height, r=g_base_outer_radius, $fn=Top_ring_smoothness);
+}
+
+module PenHolderTopRingNegative()
+{
+    top_ring_half_thickness = g_base_outer_radius - g_ngon_vertex_radius;
+    top_ring_upper_inner_radius = g_base_outer_radius - (top_ring_half_thickness * 2);
+    echo("Penholder top ring has thickness ", top_ring_half_thickness * 2);
+    translate([0, 0, -Z_EPSILON])
+        union()
+        {
+            cylinder(h=Bevel_height, r1=g_ngon_vertex_radius, r2=top_ring_upper_inner_radius, $fn=Top_ring_smoothness);
+            translate([0, 0 ,Bevel_height-Z_EPSILON])
+                cylinder(h=Top_ring_height+(Z_EPSILON*3), r=top_ring_upper_inner_radius, $fn=Top_ring_smoothness);
+        }
+}
+
+debug_top_ring_cutaway = false;
+module PenHolderTopRing()
+{
+    translate([0, 0, g_cnt_height])
+    difference()
+    {
+        PenHolderTopRingPositive();
+        PenHolderTopRingNegative();
+        if (debug_top_ring_cutaway) cube([g_base_outer_radius, g_base_outer_radius, g_base_outer_radius]);
+    }
+    echo("Penholder top ring has total height ", Bevel_height + Top_ring_height);
 }
 
 ArmchairCNT();
 if (Draw_pen_holder_base) PenHolderBase();
+if (Draw_pen_holder_top_ring) PenHolderTopRing();
