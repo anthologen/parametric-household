@@ -6,7 +6,7 @@ Carbon_diameter = 3;
 // Diameter of the carbon bonds (mm)
 Bond_diameter = 3;
 // Length of the carbon bonds (mm)
-Bond_length = 8 ;
+Bond_length = 8;
 // Halved number of n-gon faces on the tube
 Num_sides = 10;
 // Number of half layers to vertically stack
@@ -24,9 +24,9 @@ Base_height = 3;
 // $fn used to draw the pen holder base
 Base_smoothness = 64;
 
-/* [Pen Holder Top Ring] */
+/* [Pen Holder End Ring] */
 // Toggle the pen holder top ring on/off
-Draw_pen_holder_top_ring = true;
+Draw_pen_holder_ring = true;
 // Height of the top ring (mm)
 Top_ring_height = 3;
 // $fn used to draw the pen holder base
@@ -51,7 +51,7 @@ g_hexagon_height = sqrt(3) * Bond_length;
 g_half_layer_height = g_hexagon_height / 2;
 g_cnt_height = g_half_layer_height * Num_half_layers;
 g_base_outer_radius = g_ngon_vertex_radius + (Bevel_height * tan(Bevel_angle));
-Z_EPSILON = 0.01; // small value for z-fighting
+Z_EPSILON = 0.01; // small constant value for z-fighting 
 
 echo("Tube has approx. diameter ", g_ngon_vertex_radius * 2);
 echo("Tube has approx. height ", g_cnt_height);
@@ -172,18 +172,29 @@ module PenHolderTopRingNegative()
 }
 
 debug_top_ring_cutaway = false;
-module PenHolderTopRing()
+module PenHolderEndRing()
 {
-    translate([0, 0, g_cnt_height])
     difference()
     {
         PenHolderTopRingPositive();
         PenHolderTopRingNegative();
         if (debug_top_ring_cutaway) cube([g_base_outer_radius, g_base_outer_radius, g_base_outer_radius]);
     }
+}
+module PenHolderTopRing()
+{
+    translate([0, 0, g_cnt_height])
+        PenHolderEndRing();
     echo("Penholder top ring has total height ", Bevel_height + Top_ring_height);
+}
+
+module PenHolderBottomRing()
+{
+    mirror([0, 0, 180])
+        PenHolderEndRing();
 }
 
 ArmchairCNT();
 if (Draw_pen_holder_base) PenHolderBase();
-if (Draw_pen_holder_top_ring) PenHolderTopRing();
+if (Draw_pen_holder_ring) PenHolderTopRing();
+if (Draw_pen_holder_ring && !Draw_pen_holder_base) PenHolderBottomRing();
