@@ -2,11 +2,11 @@
 
 /* [Armchair Carbon Nanotube] */
 // Diameter of the carbon atoms (mm)
-Carbon_diameter = 3;
+Carbon_diameter = 3.0;
 // Diameter of the carbon bonds (mm)
-Bond_diameter = 3;
+Bond_diameter = 3.0;
 // Length of the carbon bonds (mm)
-Bond_length = 8;
+Bond_length = 8.0;
 // Halved number of n-gon faces on the tube
 Num_sides = 10;
 // Number of half layers to vertically stack
@@ -18,26 +18,27 @@ Bond_smoothness = 8;
 
 /* [Pen Holder Base] */
 // Toggle the pen holder base on/off
-Draw_pen_holder_base = true;
+Draw_pen_holder_base = 1; // [0:false, 1:true]
 // Height of the pen holder base (mm)
-Base_height = 3;
+Base_height = 3.0;
 // $fn used to draw the pen holder base
 Base_smoothness = 64;
 
 /* [Pen Holder End Ring] */
 // Toggle the pen holder top ring on/off
-Draw_pen_holder_ring = true;
+Draw_pen_holder_ring = 1; // [0:false, 1:true]
 // Height of the top ring (mm)
-Top_ring_height = 3;
+Top_ring_height = 3.0;
 // $fn used to draw the pen holder base
 Top_ring_smoothness = 64;
 
 /* [Base and Top Bevel] */
 // Angle of the top and bottom bevel (relative to Z)
 Bevel_angle = 30;
-// Height of top and bottom bevel
-Bevel_height = 3;
+// Height of top and bottom bevel (mm)
+Bevel_height = 3.0;
 
+/* [Hidden] */
 // --- Intermediate Values ---
 // pre-calculate values to allow for caching
 g_num_faces = Num_sides * 2;
